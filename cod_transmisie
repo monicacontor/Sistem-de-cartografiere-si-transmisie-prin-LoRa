@@ -1,0 +1,71 @@
+#include <SPI.h>  // Librărie pentru comunicarea SPI
+#include <LoRa.h> // Librărie pentru comunicarea LoRa
+
+#define NSS 10   // Pinul de selectare a modulului LoRa
+#define DIO0 2   // Pinul DIO0 al modulului LoRa
+#define MOSI_PIN 11 // Pinul MOSI (Master Out Slave In) pentru SPI
+#define MISO_PIN 12 // Pinul MISO (Master In Slave Out) pentru SPI
+#define SCK_PIN 13  // Pinul SCK (Serial Clock) pentru SPI
+
+#define TRIG_PIN 6  // Pinul TRIG al senzorului ultrasonic
+#define ECHO_PIN 7  // Pinul ECHO al senzorului ultrasonic
+
+void setup() {
+  Serial.begin(9600);  // Inițializează comunicarea serială la 9600 baud rate
+  while (!Serial);  // Așteaptă deschiderea conexiunii seriale
+
+  Serial.println("Inițializare LoRa...");
+
+  // Configurare pinii ca ieșire
+  pinMode(NSS, OUTPUT);
+  digitalWrite(NSS, HIGH);
+
+  pinMode(DIO0, INPUT);
+
+  // Configurare pini SPI
+  pinMode(MOSI_PIN, OUTPUT);
+  digitalWrite(MOSI_PIN, HIGH);
+
+  pinMode(SCK_PIN, OUTPUT);
+  digitalWrite(SCK_PIN, HIGH);
+
+  pinMode(MISO_PIN, INPUT);
+
+  // Configurare pinii senzorului ultrasonic
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  // Inițializare SPI
+  SPI.begin();
+
+  // Inițializare LoRa
+  if (!LoRa.begin(868E6)) {  // Setează frecvența de 868 MHz
+    Serial.println("Inițializarea LoRa a eșuat!");
+    while (1);  // Blochează programul în cazul unei erori
+  }
+  Serial.println("LoRa inițializat!");
+}
+
+void loop() {
+  long duration, distance;
+
+  // Trimitere puls TRIG
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  // Citire durata pulsului ECHO
+  duration = pulseIn(ECHO_PIN, HIGH);
+  distance = (duration / 2) / 29.1;  // Calculare distanță în cm
+
+  // Trimitere mesaj LoRa
+  Serial.print("Distanța transmisă: ");
+  Serial.println(distance);
+  LoRa.beginPacket();
+  LoRa.print(distance);
+  LoRa.endPacket();
+
+  delay(1000); // Delay de 1 secundă
+}
